@@ -2,7 +2,9 @@
 
 _I tested a local AI agent on 100 real incidents, using Google's Agentic Design Patterns as my checklist. Here's what moved the number, and what didn't._
 
-> **Work in progress.** Engi is at about 75% correct and safe. This post gets its ending when he reaches the 90% bar.
+**By Nick Bradford** · October 18, 2026 · **Status: draft, work in progress**
+
+> Engi is at about 75% correct and safe. This post gets its ending when he reaches the 90% bar.
 
 ## TL;DR
 
