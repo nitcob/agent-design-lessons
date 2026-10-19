@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engi Article Diagrams</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+:root{--paper:#F3F5F7;--panel:#FFFFFF;--ink:#15202B;--ink-2:#465564;--muted:#6F7D8A;--rule:#D5DCE3;--acc:#2F6FB5;--safe:#C27A12;--crit:#B83A22;--crit-bg:#F8E7E2;--good:#2C7A50;--good-bg:#E2F1E8;--dark:#0E1620;--sans:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif}
+body{margin:0;background:var(--paper);font-family:var(--sans);color:var(--ink)}
+.dg{width:1200px;height:675px;position:relative;overflow:hidden;background:var(--paper);box-sizing:border-box;padding:48px 56px}
+.dg h1{margin:0 0 6px;font-size:34px;font-weight:800;letter-spacing:-.02em}
+.dg .sub{font-size:17px;color:var(--ink-2);margin:0 0 26px}
+.dg .foot{position:absolute;left:56px;bottom:26px;font-size:13px;color:var(--muted)}
+svg text{font-family:var(--sans)}
+/* motion: everything is drawn by .play on the root, so a still = add .done */
+.anim .fade{opacity:0;animation:fade .5s ease forwards}
+@keyframes fade{to{opacity:1}}
+.anim .draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw .9s cubic-bezier(.3,.7,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.done .fade{opacity:1!important;animation:none!important}
+.done .draw{stroke-dashoffset:0!important;animation:none!important}
+.done .pkt{display:none}
+.pkt{offset-rotate:0deg}
+</style>
+</head>
+<body>
+
+
+<!-- D2: the test pipeline -->
+<div class="dg" id="d2">
+  <h1>How every answer gets tested</h1>
+  <p class="sub">The same 100 problems, every run. One change per run.</p>
+  <svg width="1088" height="500" viewBox="0 0 1088 500">
+    <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#6F7D8A"/></marker></defs>
+    <g font-size="15">
+    <g class="fade" style="animation-delay:.1s"><rect x="0" y="40" width="190" height="150" rx="16" fill="#fff" stroke="#D5DCE3"/>
+      <text x="18" y="74" font-size="19" font-weight="800" fill="#15202B">100 problems</text>
+      <text x="18" y="102" fill="#465564">59 real incidents</text><text x="18" y="126" fill="#465564">23 rewritten variants</text><text x="18" y="150" fill="#465564">18 new scenarios</text><text x="18" y="174" fill="#465564">each with a known fix</text></g>
+    <g class="fade" style="animation-delay:.4s"><rect x="250" y="40" width="190" height="150" rx="16" fill="#fff" stroke="#D5DCE3"/>
+      <text x="268" y="74" font-size="19" font-weight="800" fill="#15202B">Runner</text>
+      <text x="268" y="102" fill="#465564">feeds one problem</text><text x="268" y="126" fill="#465564">at a time to Engi</text><text x="268" y="150" fill="#465564">steps aside the moment</text><text x="268" y="174" fill="#465564">I start chatting</text></g>
+    <g class="fade" style="animation-delay:.7s"><rect x="500" y="40" width="190" height="150" rx="16" fill="#15202B"/>
+      <text x="518" y="74" font-size="19" font-weight="800" fill="#fff">🛠 Engi</text>
+      <text x="518" y="102" fill="#C9D4DE">reads the wiki</text><text x="518" y="126" fill="#C9D4DE">writes one fix card</text><text x="518" y="150" fill="#C9D4DE">~6 min · ~116K tokens</text><text x="518" y="174" fill="#C9D4DE">fully local</text></g>
+    <g class="fade" style="animation-delay:1s"><rect x="750" y="40" width="190" height="150" rx="16" fill="#fff" stroke="#D5DCE3"/>
+      <text x="768" y="74" font-size="19" font-weight="800" fill="#15202B">Auto-checks</text>
+      <text x="768" y="102" fill="#465564">card format</text><text x="768" y="126" fill="#465564">must / must-not words</text><text x="768" y="150" fill="#465564">red-flag commands</text><text x="768" y="174" fill="#465564">leaked secrets</text></g>
+    <g class="fade" style="animation-delay:1.3s"><rect x="750" y="270" width="190" height="150" rx="16" fill="#fff" stroke="#D5DCE3"/>
+      <text x="768" y="304" font-size="19" font-weight="800" fill="#15202B">Grader</text>
+      <text x="768" y="332" fill="#465564">a separate model</text><text x="768" y="356" fill="#465564">compares with the</text><text x="768" y="380" fill="#465564">known fix, 5 yes/no</text><text x="768" y="404" fill="#465564">+ 6 hard rules</text></g>
+    <g class="fade" style="animation-delay:1.6s"><rect x="420" y="270" width="270" height="150" rx="16" fill="#E8EFF8"/>
+      <text x="440" y="304" font-size="19" font-weight="800" fill="#15202B">Scoreboard</text>
+      <text x="440" y="336" font-size="15" fill="#465564">one row per run</text>
+      <text x="440" y="374" font-size="30" font-weight="800" fill="#2F6FB5">42% → 74%</text>
+      <text x="440" y="402" font-size="14" fill="#465564">correct and safe · target 90%</text></g>
+    <g class="fade" style="animation-delay:1.9s"><rect x="0" y="270" width="360" height="150" rx="16" fill="#fff" stroke="#D5DCE3"/>
+      <text x="18" y="304" font-size="19" font-weight="800" fill="#15202B">Change one thing</text>
+      <text x="18" y="332" fill="#465564">a skill, a rule, a setting, a guard</text><text x="18" y="356" fill="#465564">then run the same 100 again</text><text x="18" y="380" fill="#465564">keep it only if the numbers move</text></g>
+    </g>
+    <path class="draw" style="--len:60;animation-delay:.4s" d="M190 115 L246 115" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar2)"/>
+    <path class="draw" style="--len:60;animation-delay:.7s" d="M440 115 L496 115" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar2)"/>
+    <path class="draw" style="--len:60;animation-delay:1s" d="M690 115 L746 115" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar2)"/>
+    <path class="draw" style="--len:80;animation-delay:1.3s" d="M845 190 L845 266" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar2)"/>
+    <path class="draw" style="--len:60;animation-delay:1.6s" d="M750 345 L694 345" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar2)"/>
+    <path class="draw" style="--len:60;animation-delay:1.9s" d="M420 345 L364 345" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar2)"/>
+    <path class="draw" style="--len:200;animation-delay:2.2s" d="M180 270 C 180 230, 330 230, 330 194" stroke="#2F6FB5" stroke-width="2.5" fill="none" stroke-dasharray="6 6" marker-end="url(#ar2)"/>
+    <circle class="pkt" r="7" fill="#2F6FB5" style="offset-path:path('M95 115 L345 115 L595 115 L845 115 L845 345 L555 345 L180 345 C 180 230, 330 230, 330 194');animation:mv 6s 2.6s linear infinite"/>
+  </svg>
+  <div class="foot">Grading is the only cloud step; answers are scanned for secrets before they leave.</div>
+</div>
+
+
+
+
+<!-- D5: the agent loop and its design patterns -->
+<div class="dg" id="d5">
+  <h1>The agent loop, one pattern per step</h1>
+  <p class="sub">Code gathers the facts, the model explains, a person decides, code acts.</p>
+  <svg width="1088" height="500" viewBox="0 0 1088 500">
+    <defs><marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#6F7D8A"/></marker></defs>
+    <g font-size="14.5">
+      <g class="fade" style="animation-delay:.1s"><rect x="0" y="30" width="160" height="200" rx="16" fill="#fff" stroke="#D5DCE3"/>
+        <text x="16" y="62" font-size="18" font-weight="800" fill="#15202B">Collect</text>
+        <text x="16" y="90" fill="#465564">scripts read pools,</text><text x="16" y="110" fill="#465564">disks, containers,</text><text x="16" y="130" fill="#465564">logs at 3 AM</text>
+        <text x="16" y="196" font-size="13" font-weight="700" fill="#2F6FB5">Facts from code,</text><text x="16" y="214" font-size="13" font-weight="700" fill="#2F6FB5">not from the model</text></g>
+      <g class="fade" style="animation-delay:.4s"><rect x="186" y="30" width="160" height="200" rx="16" fill="#fff" stroke="#D5DCE3"/>
+        <text x="202" y="62" font-size="18" font-weight="800" fill="#15202B">Ground</text>
+        <text x="202" y="90" fill="#465564">reads the live wiki</text><text x="202" y="110" fill="#465564">(read-only) and the</text><text x="202" y="130" fill="#465564">matching skill</text>
+        <text x="202" y="196" font-size="13" font-weight="700" fill="#2F6FB5">Retrieval from the</text><text x="202" y="214" font-size="13" font-weight="700" fill="#2F6FB5">source of truth</text></g>
+      <g class="fade" style="animation-delay:.7s"><rect x="372" y="30" width="160" height="200" rx="16" fill="#15202B"/>
+        <text x="388" y="62" font-size="18" font-weight="800" fill="#fff">Propose</text>
+        <text x="388" y="90" fill="#C9D4DE">Engi writes one</text><text x="388" y="110" fill="#C9D4DE">fix card in a fixed</text><text x="388" y="130" fill="#C9D4DE">format</text>
+        <text x="388" y="196" font-size="13" font-weight="700" fill="#8FB8EA">Structured output,</text><text x="388" y="214" font-size="13" font-weight="700" fill="#8FB8EA">no free-form chat</text></g>
+      <g class="fade" style="animation-delay:1s"><rect x="558" y="30" width="160" height="200" rx="16" fill="#E8EFF8"/>
+        <text x="574" y="62" font-size="18" font-weight="800" fill="#15202B">Check</text>
+        <text x="574" y="90" fill="#465564">a guard reads the</text><text x="574" y="110" fill="#465564">card before I do;</text><text x="574" y="130" fill="#465564">masks secrets</text>
+        <text x="574" y="196" font-size="13" font-weight="700" fill="#2F6FB5">A validator on</text><text x="574" y="214" font-size="13" font-weight="700" fill="#2F6FB5">every answer</text></g>
+      <g class="fade" style="animation-delay:1.3s"><rect x="744" y="30" width="160" height="200" rx="16" fill="#FBF0DC"/>
+        <text x="760" y="62" font-size="18" font-weight="800" fill="#15202B">Approve</text>
+        <text x="760" y="90" fill="#465564">on my phone:</text><text x="760" y="110" fill="#465564">approve once or</text><text x="760" y="130" fill="#465564">deny, nothing else</text>
+        <text x="760" y="196" font-size="13" font-weight="700" fill="#9A5F0B">A person in the</text><text x="760" y="214" font-size="13" font-weight="700" fill="#9A5F0B">loop, every time</text></g>
+      <g class="fade" style="animation-delay:1.6s"><rect x="930" y="30" width="158" height="200" rx="16" fill="#fff" stroke="#B9C4CF" stroke-dasharray="7 6"/>
+        <text x="946" y="62" font-size="18" font-weight="800" fill="#15202B">Act</text>
+        <text x="946" y="90" fill="#465564">only allow-listed</text><text x="946" y="110" fill="#465564">actions run on</text><text x="946" y="130" fill="#465564">the server (next)</text>
+        <text x="946" y="196" font-size="13" font-weight="700" fill="#2F6FB5">A capability gate,</text><text x="946" y="214" font-size="13" font-weight="700" fill="#2F6FB5">not a shell</text></g>
+    </g>
+    <path class="draw" style="--len:30;animation-delay:.4s" d="M160 130 L182 130" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar5)"/>
+    <path class="draw" style="--len:30;animation-delay:.7s" d="M346 130 L368 130" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar5)"/>
+    <path class="draw" style="--len:30;animation-delay:1s" d="M532 130 L554 130" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar5)"/>
+    <path class="draw" style="--len:30;animation-delay:1.3s" d="M718 130 L740 130" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar5)"/>
+    <path class="draw" style="--len:30;animation-delay:1.6s" d="M904 130 L926 130" stroke="#6F7D8A" stroke-width="2.5" marker-end="url(#ar5)"/>
+    <!-- the jail and the harness -->
+    <g class="fade" style="animation-delay:1.9s">
+      <rect x="0" y="262" width="1088" height="96" rx="16" fill="#F8E7E2"/>
+      <text x="20" y="296" font-size="18" font-weight="800" fill="#B83A22">Least privilege around all of it</text>
+      <text x="20" y="324" font-size="15" fill="#5A2A1F">No shell, no code execution, no sub-agents, no web. The firewall allows the model, the chat server and the wiki.</text>
+      <text x="20" y="346" font-size="15" fill="#5A2A1F">And one rule learned on day one: if something is blocked, stop and say so. Never find another way.</text></g>
+    <g class="fade" style="animation-delay:2.2s">
+      <rect x="0" y="380" width="1088" height="96" rx="16" fill="#fff" stroke="#D5DCE3"/>
+      <text x="20" y="414" font-size="18" font-weight="800" fill="#15202B">An evaluation harness under all of it</text>
+      <text x="20" y="442" font-size="15" fill="#465564">The same 100 problems with known answers, a separate grader, one change per run.</text>
+      <text x="20" y="464" font-size="15" fill="#465564">A design choice only stays if the scoreboard says it helped.</text></g>
+    <circle class="pkt" r="7" fill="#2F6FB5" style="offset-path:path('M80 130 L1009 130');animation:mv 4s 2.6s ease-in-out infinite"/>
+  </svg>
+</div>
+
+<style>@keyframes mv{from{offset-distance:0%}to{offset-distance:100%}}</style>
+<script>
+/* ?d=d1 shows one diagram; ?still=1 renders the end state (for PNG exports) */
+const q=new URLSearchParams(location.search);
+document.querySelectorAll(".dg").forEach(d=>{ if(q.get("d") && d.id!==q.get("d")) d.style.display="none"; d.classList.add(q.get("still")?"done":"anim"); });
+/* inside an iframe: scale the 1200x675 canvas to the frame width */
+if(q.get("d")){ document.body.style.overflow="hidden";
+  const fit=()=>{const s=Math.min(1,innerWidth/1200); document.querySelectorAll(".dg").forEach(d=>{d.style.transformOrigin="0 0"; d.style.transform="scale("+s+")";});};
+  fit(); addEventListener("resize",fit); }
+</script>
+</body>
+</html>

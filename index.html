@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lessons in Agent Design</title>
+<meta name="description" content="Long-form write-up of the Engi accuracy tests: a local AI homelab engineer, 100 problems with known answers, one change per run.">
+<link rel="stylesheet" href="fonts.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232F6FB5%22/%3E%3Cpath d=%22M9 17l5 5 9-12%22 stroke=%22white%22 stroke-width=%223.5%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
+<style>
+:root{--paper:#F3F5F7;--panel:#fff;--ink:#15202B;--ink-2:#465564;--muted:#6F7D8A;--rule:#D5DCE3;--acc:#2F6FB5;--sans:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;--serif:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#141719;--panel:#1A1C1E;--ink:#E8ECEF;--ink-2:#B6C0C9;--muted:#8C98A3;--rule:#2E353B;--acc:#5B93D4}}
+:root[data-theme="dark"]{--paper:#141719;--panel:#1A1C1E;--ink:#E8ECEF;--ink-2:#B6C0C9;--muted:#8C98A3;--rule:#2E353B;--acc:#5B93D4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 18px/1.65 var(--serif);-webkit-font-smoothing:antialiased}
+.progress{position:fixed;top:0;left:0;height:3px;background:var(--acc);width:0;z-index:20}
+.bar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+.bar div{max-width:1040px;margin:0 auto;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;font:600 14.5px var(--sans)}
+.bar a{color:var(--ink-2);text-decoration:none;margin-left:18px;font-weight:500}
+.bar button{background:none;border:1px solid var(--rule);color:var(--ink-2);border-radius:999px;padding:4px 12px;font:500 13px var(--sans);cursor:pointer;margin-left:18px}
+article{max-width:700px;margin:0 auto;padding:56px 20px 96px}
+article h1{font:800 clamp(36px,5.4vw,56px)/1.04 var(--sans);letter-spacing:-.035em;margin:0 0 18px}
+article h1+p em{font-style:normal;font-size:22px;color:var(--ink-2);line-height:1.5;display:block}
+article h2{font:800 30px/1.15 var(--sans);letter-spacing:-.02em;margin:64px 0 16px}
+article p{margin:0 0 18px}
+article strong{font-weight:600}
+article ul,article ol{padding-left:1.25em;margin:0 0 18px}
+article li{margin:4px 0}
+article a{color:var(--acc)}
+article code{font:15.5px ui-monospace,Menlo,monospace;background:color-mix(in srgb,var(--ink) 8%,transparent);padding:1px 5px;border-radius:5px}
+article hr{border:0;border-top:1px solid var(--rule);margin:56px 0 28px}
+article table{width:100%;border-collapse:collapse;font:15.5px/1.45 var(--sans);margin:8px 0 26px}
+article th,article td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule)}
+article th{color:var(--muted);font-weight:500}
+figure{margin:30px -60px 34px;text-align:center}
+@media (max-width:860px){figure{margin:26px 0 30px}}
+figure img,figure iframe{width:100%;border-radius:14px;border:1px solid var(--rule);background:var(--panel);display:block}
+figure iframe{aspect-ratio:16/9;height:auto}
+figcaption{font:14.5px/1.45 var(--sans);color:var(--muted);margin-top:10px}
+figure .replay{font:500 13px var(--sans);background:none;border:1px solid var(--rule);color:var(--ink-2);border-radius:999px;padding:4px 12px;margin-top:8px;cursor:pointer}
+.err{font:15px var(--sans);color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.progress{display:none}}
+@media (max-width:560px){.bar a{display:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="prog" aria-hidden="true"></div>
+<header class="bar"><div><span>Lessons in Agent Design</span><span><button id="theme">Theme</button></span></div></header>
+<article id="post"><p class="err">Loading the article…</p></article>
+<script src="marked.min.js"></script>
+<script>
+(function(){
+"use strict";
+const root=document.documentElement;
+try{const t=localStorage.getItem("engi-theme"); if(t) root.dataset.theme=t;}catch(e){}
+document.getElementById("theme").onclick=()=>{const dark=root.dataset.theme?root.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme=dark?"light":"dark"; try{localStorage.setItem("engi-theme",root.dataset.theme)}catch(e){}};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* diagrams play live in the browser (the GIFs are for Substack/LinkedIn); everything else uses the same images */
+const LIVE={"anim-d1.gif":"d1","anim-d2.gif":"d2","anim-d3.gif":"d3","anim-d4.gif":"d4","anim-d5.gif":"d5"};
+fetch("article.md",{cache:"no-store"}).then(r=>{if(!r.ok) throw new Error(r.status); return r.text();}).then(md=>{
+  const post=document.getElementById("post");
+  post.innerHTML=marked.parse(md);
+  post.querySelectorAll("p > img").forEach(img=>{
+    const p=img.parentElement, f=document.createElement("figure"), file=img.getAttribute("src").split("/").pop();
+    let media=img;
+    if(LIVE[file]){
+      media=document.createElement("iframe"); media.title=img.alt; media.loading="lazy";
+      media.dataset.src="diagrams.html?d="+LIVE[file]+(reduce?"&still=1":"");
+    } else img.loading="lazy";
+    f.appendChild(media);
+    const c=document.createElement("figcaption"); c.textContent=img.alt; f.appendChild(c);
+    if(LIVE[file]&&!reduce){const b=document.createElement("button"); b.className="replay"; b.textContent="Replay"; b.onclick=()=>{media.src=media.dataset.src+"&r="+Date.now()}; f.appendChild(b);}
+    p.replaceWith(f);
+  });
+  /* a live diagram starts when it scrolls into view, so its animation is actually seen */
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting&&!e.target.src){e.target.src=e.target.dataset.src; io.unobserve(e.target);}}),{threshold:.4});
+  post.querySelectorAll("iframe[data-src]").forEach(f=>io.observe(f));
+}).catch(err=>{document.getElementById("post").innerHTML='<p class="err">The article could not be loaded ('+String(err.message||err)+'). Check that article.md sits next to this page.</p>';});
+/* reading progress */
+const prog=document.getElementById("prog");
+addEventListener("scroll",()=>{const h=document.documentElement; prog.style.width=(100*h.scrollTop/Math.max(1,h.scrollHeight-h.clientHeight))+"%";},{passive:true});
+})();
+</script>
+</body>
+</html>
