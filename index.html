@@ -59,9 +59,11 @@ document.getElementById("theme").onclick=()=>{const dark=root.dataset.theme?root
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* diagrams play live in the browser (the GIFs are for Substack/LinkedIn); everything else uses the same images */
 const LIVE={"anim-d1.gif":"d1","anim-d2.gif":"d2","anim-d3.gif":"d3","anim-d4.gif":"d4","anim-d5.gif":"d5"};
-fetch("article.md",{cache:"no-store"}).then(r=>{if(!r.ok) throw new Error(r.status); return r.text();}).then(md=>{
+fetch(new URLSearchParams(location.search).get("part")==="2"?"part-2.md":"article.md",{cache:"no-store"}).then(r=>{if(!r.ok) throw new Error(r.status); return r.text();}).then(md=>{
   const post=document.getElementById("post");
   post.innerHTML=marked.parse(md);
+  const h1=post.querySelector("h1"); if(h1) document.title=h1.textContent;
+  scrollTo(0,0);
   post.querySelectorAll("p > img").forEach(img=>{
     const p=img.parentElement, f=document.createElement("figure"), file=img.getAttribute("src").split("/").pop();
     let media=img;
