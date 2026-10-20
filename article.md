@@ -137,13 +137,44 @@ So I changed the strategy.
 | **Exception Handling (12)** | Code checks every card: complete, a backup before any change, a verify step, a real undo. If something is missing, it goes back, up to twice. | A rule in a prompt is a request; a check in code is a gate |
 | **Learning and Adaptation (9), Memory (8)** | Training, at last: Engi reads a graded wrong answer and the confirmed fix, and writes at most three general rules into his own memory. | He learns from his mistakes, not from mine |
 
-**Laya** was trained on 1,010 labelled pairs, in a few minutes on the same GPU. On 40 held-out cases it sent 16 to the known-fix path, and **15 of those were right.** A text-similarity cutoff found one.
-
 **The training** went through 56 of his failed answers on the old 100. Every rule he kept is general. Two of them:
 
 > _Diagnose: commit to one cause fitting ALL facts; step 1 = the targeted read-only check that confirms it, never a survey._
 >
 > _Changes: save the exact prior value (undo = restore it). Verify new values took._
+
+## Two open-source tools: Laya and Honcho
+
+Two of the pieces aren't mine. Both are open source and run on my own hardware, which was the first requirement: no incident text leaves the house.
+
+### Laya: a fast yes/no before the slow thinking
+
+**What it is.** [Laya](https://github.com/NandhaKishorM/laya) (Apache-2.0) is a small "decision engine": an encoder model (ModernBERT) that answers a typed question, such as yes/no or pick one, with a confidence score. It doesn't generate text. One answer takes about a tenth of a second on a CPU; the 27B model takes minutes.
+
+**Why I picked it.** The Routing pattern (chapter 2) needs a cheap, reliable first decision: _have we solved this exact problem before?_ If yes, Engi should reuse the confirmed fix instead of reasoning from scratch. My first attempt used text similarity, and it almost never fired. A dedicated classifier with a confidence score was the obvious next step, and Laya runs locally with no cloud and no telemetry.
+
+**What happened.**
+
+- **Out of the box, it failed:** on 500 of my labelled pairs it ranked "same problem" barely better than a coin flip.
+- **So I trained it** on 1,010 pairs ("is this report the same failure as that past incident?"), in a few minutes on the same GPU.
+- **Trained, it worked:** on 40 held-out cases it sent 16 to the known-fix path, and **15 of those were right.** The text-similarity cutoff found one.
+- **In the exam,** the three cases it routed in the first 20 all got the right cause.
+
+**The lesson:** for one narrow decision, a small model trained on your own labels beat both the off-the-shelf version and plain text similarity.
+
+### Honcho: memory for the live agent, kept out of the test
+
+**What it is.** [Honcho](https://github.com/plastic-labs/honcho) (AGPL) is a self-hosted memory server for agents. It watches conversations and builds a shared, learned picture of the people and agents involved, so every agent can recall what the others learned.
+
+**Why I picked it.** I wanted the live Engi and his teammate (the agent that writes the nightly report) to share one memory of my homelab and my preferences, fully local. Honcho runs on the server, uses the same local 27B model, and stores everything in my own database.
+
+**What happened.**
+
+- **Kept out of the test, on purpose.** A memory that learns from every conversation would carry knowledge from one test case into the next, and the score would stop meaning anything. Engi's exam profile has no Honcho. His only memory there is the rules he writes from his graded mistakes.
+- **It costs compute.** One answer with Honcho on triggered 14 to 19 extra model calls (60,000 to 100,000 input tokens) for recall. On one GPU, that's minutes per answer.
+- **It surprised the test harness.** The harness steps aside whenever I use the GPU. Honcho's background worker looked like me chatting, so the test paused itself for half an hour. The fix was one line: ignore Honcho's traffic.
+
+**The lesson:** memory is two different things. **Learned memory** (Honcho) is for a live assistant that should know you; its value there is still being measured. **Curated memory** (rules from graded mistakes) is what made Engi more accurate, and it's the only kind you can test fairly.
 
 ## Where he is now
 
