@@ -2,7 +2,7 @@
 
 **A private assistant was a confident liar about our own systems, so I gave her an open-book exam that runs entirely on hardware we control. On an 18-question regression set, retrieval went from 16 of 18 right to 18 of 18. Getting her to actually use the note instead of inventing is the harder half, and I don't have that number yet, which I'm clear about below.**
 
-**By Nick Bradford** · November 2, 2026 · **Status: draft (not yet published)**
+**By Nick Bradford** · November 3, 2026
 
 This was a deployment problem, not a research problem. I had a real assistant, a real pile of internal notes, one hard constraint (it all stays on hardware we control), and one job: make her answer from the truth. Here is what I shipped, what I measured, what it cost, and where the evidence stops.
 
