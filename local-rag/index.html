@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG for Bella</title>
+<meta name="description" content="How a private, local AI assistant got an open-book exam over an internal corpus: retrieval that runs entirely on hardware under our control, with raw measured results and nothing sent to the cloud.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%236B4DF0%22/%3E%3Ccircle cx=%2212%22 cy=%2214%22 r=%222.4%22 fill=%22white%22/%3E%3Ccircle cx=%2220%22 cy=%2214%22 r=%222.4%22 fill=%22white%22/%3E%3Cpath d=%22M11 21q5 4 10 0%22 stroke=%22white%22 stroke-width=%222%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<style>
+:root{--paper:#F3F5F7;--panel:#fff;--ink:#15202B;--ink-2:#465564;--muted:#6F7D8A;--rule:#D5DCE3;--acc:#2F6FB5;--bella:#6B4DF0;--sans:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#141719;--panel:#1A1C1E;--ink:#E8ECEF;--ink-2:#B6C0C9;--muted:#8C98A3;--rule:#2E353B;--acc:#5B93D4;--bella:#9B86FF}}
+:root[data-theme="dark"]{--paper:#141719;--panel:#1A1C1E;--ink:#E8ECEF;--ink-2:#B6C0C9;--muted:#8C98A3;--rule:#2E353B;--acc:#5B93D4;--bella:#9B86FF}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 18px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+.progress{position:fixed;top:0;left:0;height:3px;background:var(--bella);width:0;z-index:20}
+.bar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+.bar div{max-width:1040px;margin:0 auto;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;font:600 14.5px var(--sans)}
+.bar .brand{display:flex;align-items:center;gap:10px}
+.bar .brand svg{width:26px;height:26px;border-radius:8px}
+.bar a{color:var(--ink-2);text-decoration:none;margin-left:18px;font-weight:500}
+.bar button{background:none;border:1px solid var(--rule);color:var(--ink-2);border-radius:999px;padding:4px 12px;font:500 13px var(--sans);cursor:pointer;margin-left:18px}
+article{max-width:700px;margin:0 auto;padding:56px 20px 96px}
+article h1{font:800 clamp(34px,5.2vw,54px)/1.05 var(--sans);letter-spacing:-.035em;margin:0 0 18px}
+article h1+p strong{font-weight:600;font-size:21px;color:var(--ink-2);line-height:1.5;display:block}
+article h2{font:800 29px/1.15 var(--sans);letter-spacing:-.02em;margin:62px 0 16px}
+article p{margin:0 0 18px}
+article strong{font-weight:600}
+article em{color:var(--ink-2)}
+article ul,article ol{padding-left:1.25em;margin:0 0 18px}
+article li{margin:6px 0}
+article a{color:var(--acc)}
+article code{font:15.5px ui-monospace,Menlo,monospace;background:color-mix(in srgb,var(--ink) 8%,transparent);padding:1px 5px;border-radius:5px}
+article hr{border:0;border-top:1px solid var(--rule);margin:56px 0 28px}
+figure{margin:34px -70px 36px;text-align:center}
+@media (max-width:900px){figure{margin:28px 0 32px}}
+figure img,figure iframe{width:100%;border-radius:14px;border:1px solid var(--rule);background:var(--panel);display:block}
+figure iframe{aspect-ratio:16/9;height:auto}
+/* diagrams are drawn light; in dark mode flip lightness but keep hues so they match the page */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) figure iframe{filter:invert(1) hue-rotate(180deg)}}
+:root[data-theme="dark"] figure iframe{filter:invert(1) hue-rotate(180deg)}
+:root[data-theme="light"] figure iframe{filter:none}
+figure.hero img{max-width:340px;margin:0 auto;border-radius:20px}
+figcaption{font:14.5px/1.45 var(--sans);color:var(--muted);margin-top:10px}
+figure .replay{font:500 13px var(--sans);background:none;border:1px solid var(--rule);color:var(--ink-2);border-radius:999px;padding:4px 12px;margin-top:8px;cursor:pointer}
+.err{font:15px var(--sans);color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.progress{display:none}}
+@media (max-width:560px){.bar a{display:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="prog" aria-hidden="true"></div>
+<header class="bar"><div>
+  <span class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7C5CFF"/><stop offset="1" stop-color="#C154C1"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#bg)"/><circle cx="12" cy="14" r="2.4" fill="#fff"/><circle cx="20" cy="14" r="2.4" fill="#fff"/><path d="M11 21q5 4 10 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    <span>RAG for Bella</span>
+  </span>
+  <span><button id="theme">Theme</button></span>
+</div></header>
+<article id="post"><p class="err">Loading the article…</p></article>
+
+<!-- offline mirror of article.md, used only if fetch() is blocked (opening via file://). article.md is the source of truth. -->
+<script id="inline" type="text/markdown">
+# I Taught a Private AI to Read My Own Notes: Building a Local RAG
+
+**A private assistant was a confident liar about our own systems, so I gave her an open-book exam that runs entirely on hardware we control. On an 18-question regression set, retrieval went from 16 of 18 right to 18 of 18. Getting her to actually use the note instead of inventing is the harder half, and I don't have that number yet, which I'm clear about below.**
+
+**By Nick Bradford** · November 2, 2026 · **Status: draft (not yet published)**
+
+This was a deployment problem, not a research problem. I had a real assistant, a real pile of internal notes, one hard constraint (it all stays on hardware we control), and one job: make her answer from the truth. Here is what I shipped, what I measured, what it cost, and where the evidence stops.
+
+## The problem: a confident liar
+
+Bella (a local assistant) is sharp on general questions and blind to our own environment. Ask her "how is the photo app set up on our server?" and she returns a fluent, professional answer that is simply invented. It isn't her fault. A language model answers from training, and it has never seen our setup, so it fills the gap with the statistically likely answer instead of the true one. I didn't want a bigger model. I wanted her to look things up before she spoke.
+
+![Bella answering the same question before and after: a confident, invented answer, then a grounded one that cites your own note](images/anim-bella.gif)
+
+## The constraint that drove everything
+
+Privacy was the starting constraint, not a feature bolted on: nothing Bella reads can leave our hardware. That killed every easy option (a hosted vector database, a cloud embedding API, someone else's reranker) before I wrote a line, and forced a local embedder and a self-hosted store.
+
+The constraint has a bonus: it makes the architecture easy to explain to whoever owns the risk. One line around the system, and nothing a model reads crosses it. Which model, which database, which reranker are details you can swap without reopening the question that matters. The person signing off wants to know where the boundary is, what happens when a piece fails, and how you'd find out.
+
+## What RAG is, and how retrieval differs from search
+
+RAG is an open-book exam. Instead of answering from memory, you retrieve the relevant page from your own notes and hand it to the model with the question, so it answers from the page in front of it.
+
+The retrieve step is not the search you're used to. Classic search matches the words you typed, so miss the term the note used and you get nothing. Retrieval matches what you meant, by turning the question and the notes into vectors (lists of numbers) and returning the closest ones. People rarely phrase a question the way the note is written, so matching on meaning is the point. (Keyword search still wins when the query is an exact token, an error code or a filename; a hybrid of the two is on my list to run against the gate, not done yet.)
+
+## The stack, named, all local
+
+- **Vector database:** Qdrant, self-hosted.
+- **Embedder:** `nomic-embed-text`, 137M parameters, 274 MB, 768-dimensional vectors.
+- **Chat model (Bella):** a local 27B, quantized to 4-bit.
+- **Hardware:** the chat model on a single 24 GB GPU; the embedder on an 8 GB GPU.
+
+Each note is chunked, each chunk is embedded once and stored in Qdrant, and a question is embedded the same way so the nearest chunks come back.
+
+![From a note to an answer: notes are turned into meaning once, your question gets the same treatment, and the database hands back the closest notes, all on local machines](images/anim-pipeline.gif)
+
+Chunking is a fixed sliding window, deliberately dumb:
+
+```python
+def chunk(text, size=3200, overlap=200):
+    step = size - overlap
+    return [text[i:i+size] for i in range(0, len(text), step)]
+```
+
+Today that's 640 chunks across 229 notes.
+
+## What I turned down
+
+Knowing the options isn't the job; defending a choice is.
+
+- **The embedder.** `nomic-embed-text` over **BGE-M3** (bigger, 1024-dimensional, slower, and on my 18 it ranked the wrong note first a few times) and **MiniLM** (fast, but trained without the document-versus-query distinction, so questions and notes landed in misaligned spaces and I got close-but-wrong hits). Head-to-head numbers for those two are the obvious next ablation.
+- **The store.** Qdrant over pgvector (I didn't want retrieval living inside a database I lean on for other things) and over pure keyword search (it breaks the moment someone rephrases). Qdrant also gives me auth and payload metadata to filter on, which is the hook for keeping blocked notes out of results.
+- **Chunking.** A fixed window over heading-aware splitting, because the dumb version already maxed the gate.
+
+## How I keep it cheap
+
+Everything local means zero marginal cost per query: no metered API, so re-indexing the whole corpus as often as I like costs nothing but time. The rest follows from that: a 274 MB embedder and a 4-bit chat model fit on hardware that's already running, and the gate lets me keep the cheap, simple version (no reranker, no bigger model) until a number says the complexity earns its keep.
+
+## Lesson 1: the embedder has a secret handshake
+
+My first version worked, mostly. The right note showed up often, not always. Then I read the model card: this family is trained to see a label in front of the text saying what it is. `search_document:` for a stored chunk, `search_query:` for a question. I was feeding it raw text.
+
+```python
+def embed(text, kind):                       # kind: "document" or "query"
+    prefix = "search_document: " if kind == "document" else "search_query: "
+    return embedder.encode(prefix + text)
+```
+
+That one line moved hit@1 from 16 of 18 to 17 of 18. An embedding model has a contract, and the defaults are often wrong for your job.
+
+![The prefix handshake: labeling a stored note and a question so the model knows which is which moves hit@1 from 16 of 18 to 17 of 18](images/anim-handshake.gif)
+
+## Lesson 2: tell the chunk where it lives
+
+A chunk cut from the middle of a long note loses its subject. "Run the reset and wait for it to finish." Reset of what? So before embedding, I glue the note's title on the front, while still storing the original chunk:
+
+```python
+def embed_chunk(note_title, chunk):
+    return embed(f"{note_title}\n\n{chunk}", "document")
+```
+
+That moved hit@1 from 17 of 18 to 18 of 18.
+
+![Giving each chunk its note title back before embedding moves hit@1 from 17 of 18 to 18 of 18](images/anim-title.gif)
+
+## The gate, and what the numbers really say
+
+My test set is 18 real questions, each tied to the note that should come back. It's a regression gate, not a benchmark. A script runs all 18 and reports where the right note ranked:
+
+```python
+hits = 0
+for question, expected_note in gold:              # 18 pairs
+    top = search(embed(question, "query"), k=5)    # nearest chunks
+    if top[0].note == expected_note:               # right note ranked #1?
+        hits += 1
+print(f"hit@1: {hits}/18")                         # 18/18 today
+```
+
+Now the honest reading, because the percentages flatter it. hit@1 went 16 to 17 to 18 as I added the two fixes. Each step is **one question** moving from rank 2 or 3 up to rank 1. On 18 questions a single flip is about six points, so "89 to 94 to 100 percent" is a prettier way of saying "two more questions ranked first."
+
+And the part that matters most: **hit@3 and hit@5 were 18 of 18 for every configuration, including the baseline.** If I feed the top three chunks to the model, the right note was already there before either fix. The prefix and title tricks improve the ranking, not whether the note is found. So these are the two tricks every RAG guide recommends, and on this corpus they were closer to hygiene than breakthroughs: one line of code each, worth keeping, but they only reordered a top-3 that was already correct. They'd matter more if I fed the model only the top chunk, or where citation order and a tight context budget make rank expensive.
+
+![The regression gate: 18 real questions, the right-note-first count going 16, 17, 18 as each fix lands, though the right note was already in the top 3 at baseline](images/anim-score.gif)
+
+## What I measured, and what I did not
+
+Retrieval is the half I can put a number on: the right note is reliably in front of her. That is not the same as her using it. Whether the answer she writes is faithful to the note, or whether she ignores it and falls back to training, is a different failure, and I don't have a number for it yet.
+
+The honest reason is the privacy rule. Measuring faithfulness usually means an LLM judge, and nothing leaves the box, so no cloud judge. The next step is a local judge plus a deterministic citation check (every claim in her answer must trace to a retrieved line), a held-out set of 30 to 50 questions I did not write into the retriever (including exact-identifier lookups and deliberately odd phrasings), and a batch of unanswerable questions to measure how often she says "I don't know" instead of inventing. Until those numbers exist, the claim stays narrow: I measured retrieval, not faithfulness.
+
+## Latency
+
+A query comes back in about 90 ms, and the split is the story. Over 100 queries, total p50 was 88 ms, p95 was 100 ms, p99 was 112 ms. Of that, the embedding call is roughly 83 ms and the vector search in Qdrant is about 5 ms. The 83 ms is mostly serving overhead, not compute: the embed is an HTTP round-trip through an OpenAI-compatible API to the model host on a second machine, so a 137M model's few-millisecond forward pass is dwarfed by the hop. The database isn't the bottleneck, and neither really is the model; the round-trip is. If I cared, I'd co-locate or batch.
+
+## The failure that still makes me wince, turned into a test
+
+Before any of this, one of our own tools read a real API key out of a doc and quoted it back in an answer. Harmless that time, because it stayed internal. But an AI repeats what you put in front of it, and the next time that line could be in a log or a screenshot.
+
+RAG makes this worse, not better, because the whole point is to feed it all your notes. So I turned the anecdote into a gate check. I plant canary secrets, a fake of every shape (OpenAI, AWS, GitHub, a private-key header, a bearer token, nine in all), into a test note and assert none survive:
+
+```python
+redacted, found = scan_text(note_with_canaries)
+assert not any(canary in redacted for canary in planted)   # 0 survive
+```
+
+Measured: **9 planted, 9 caught, 0 in the output.** That is the ingest layer only, and it's the one hard security number I can show today. Extending the same assertion to the blocked-note filter and the output mask, and adding a prompt-injection note (a document whose text tells the assistant to ignore its rules), are not done yet. I'm not going to claim a result I haven't run.
+
+## Failure modes, and how I'd catch each
+
+The risk owner's real question is what breaks and how you notice.
+
+- **Stale index:** a note changes but its vector doesn't, so she cites an old answer. The indexer re-embeds on file change in about ten seconds; a check compares note timestamps against the last index to flag drift.
+- **Orphaned vectors:** a note is deleted but its chunks linger, so she cites something gone. I've hit this for real (an earlier run left roughly 600 stale points). The fix is to reconcile stored vectors against the current note set; I've found the problem but not yet automated the reconcile.
+- **Component down:** if the embedder or Qdrant is unreachable, retrieval should fail closed, so she says "I can't look it up right now" rather than guessing from training. That's the intended behaviour; I haven't fault-injected it to prove it holds.
+
+## The limits, because this is one operator on one internal corpus
+
+I should name the ceiling on this evidence. It's one operator, me, on a single internal corpus. I wrote the 18 gold questions, so there's selection bias: I know the notes, and I may have written questions the system can answer. Eighteen is small, and the gate catches regressions, it doesn't prove quality. A fair test needs questions written by someone who didn't build it, a bigger and blinder set, and the faithfulness number I don't have yet. That work is planned, and the eval script plus a redacted sample of the questions will ship so you can run the gate on your own notes.
+
+## The one thing to steal
+
+Build the scorer before the system. The scorer is what turns "I think this is better" into "this is better, and here's the number," and it's the only thing that let me keep the cheap, simple, private version honestly. I can tell you the prefix and title tricks helped because I turned each on and off and watched the count move; without the gate, those are two things I'd merely believe. Privacy turned out not to be a tax either: a 274 MB local embedder and a self-hosted store got the right note in front of her every time, with nothing leaving our control. And the shape isn't personal to me. A private corpus, a hard boundary, and a gate you run before every change is what a clinic or a law office or any team on sensitive internal docs needs. The design doesn't care whose notes they are.
+
+</script>
+
+<script src="marked.min.js"></script>
+<script>
+(function(){
+"use strict";
+const root=document.documentElement;
+try{const t=localStorage.getItem("rag-theme"); if(t) root.dataset.theme=t;}catch(e){}
+document.getElementById("theme").onclick=()=>{const dark=root.dataset.theme?root.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme=dark?"light":"dark"; try{localStorage.setItem("rag-theme",root.dataset.theme)}catch(e){}};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* each figure below is a live, animated diagram rendered in an iframe (no images needed, nothing loaded from the network) */
+const LIVE={"anim-bella.gif":"d2","anim-pipeline.gif":"d1","anim-handshake.gif":"d3","anim-title.gif":"d4","anim-score.gif":"d5"};
+
+function render(md){
+  const post=document.getElementById("post");
+  post.innerHTML=marked.parse(md);
+  post.querySelectorAll("p > img").forEach(img=>{
+    const p=img.parentElement, f=document.createElement("figure"), file=img.getAttribute("src").split("/").pop();
+    let media=img;
+    if(LIVE[file]){
+      media=document.createElement("iframe"); media.title=img.alt; media.loading="lazy";
+      media.dataset.src="diagrams.html?d="+LIVE[file]+(reduce?"&still=1":"");
+    } else img.loading="lazy";
+    f.appendChild(media);
+    const c=document.createElement("figcaption"); c.textContent=img.alt; f.appendChild(c);
+    if(LIVE[file]&&!reduce){const b=document.createElement("button"); b.className="replay"; b.textContent="Replay"; b.onclick=()=>{media.src=media.dataset.src+"&r="+Date.now()}; f.appendChild(b);}
+    p.replaceWith(f);
+  });
+  /* a live diagram starts when it scrolls into view */
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting&&!e.target.src){e.target.src=e.target.dataset.src; io.unobserve(e.target);}}),{threshold:.3});
+  post.querySelectorAll("iframe[data-src]").forEach(f=>io.observe(f));
+  /* optional hero portrait: if you drop a real rendered portrait at images/bella-portrait.(png|jpg|webp), it appears under the title automatically; otherwise nothing shows */
+  const h1=post.querySelector("h1");
+  if(h1){const probe=new Image(); probe.onload=()=>{const fig=document.createElement("figure"); fig.className="hero"; const im=document.createElement("img"); im.src=probe.src; im.alt="Bella"; fig.appendChild(im); const cap=document.createElement("figcaption"); cap.textContent="Bella, the local assistant"; fig.appendChild(cap); (h1.nextElementSibling||h1).insertAdjacentElement("afterend",fig);}; probe.src="images/bella-portrait.png";}
+}
+
+fetch("article.md",{cache:"no-store"}).then(r=>{if(!r.ok) throw new Error(r.status); return r.text();}).then(render)
+  .catch(()=>{const el=document.getElementById("inline"); if(el&&el.textContent.trim()){render(el.textContent);} else {document.getElementById("post").innerHTML='<p class="err">Could not load the article. Serve this folder over http (for example: python3 -m http.server) and open index.html.</p>';}});
+
+/* reading progress */
+const prog=document.getElementById("prog");
+addEventListener("scroll",()=>{const h=document.documentElement; prog.style.width=(100*h.scrollTop/Math.max(1,h.scrollHeight-h.clientHeight))+"%";},{passive:true});
+})();
+</script>
+</body>
+</html>
